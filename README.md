@@ -1,27 +1,110 @@
--- =====================================================
--- EZ9 Hub | فحص الاسمين (Name + DisplayName)
--- =====================================================
-local s, e = pcall(function()
+local success, err = pcall(function()
     repeat task.wait() until game:IsLoaded()
 
     local Players = game:GetService("Players")
     local CoreGui = game:GetService("CoreGui")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local UserInputService = game:GetService("UserInputService")
-    local RunService = game:GetService("RunService")
-    local TweenService = game:GetService("TweenService")
-
+    local HttpService = game:GetService("HttpService")
     local LocalPlayer = Players.LocalPlayer
 
-    -- ==================== الصلاحيات (EZ9 فقط) ====================
-    local function hasEZ9(name)
-        return name and name:upper():find("EZ9") ~= nil
+    local PERMANENT_KEY = "EZ9 ON TOP"
+    local KEY_FILE = "EZ9_key.json"
+
+    -- حفظ المفتاح
+    local function saveKey(key)
+        local data = {
+            key = key,
+            expires = os.time() + (24 * 60 * 60)
+        }
+        pcall(function() writefile(KEY_FILE, HttpService:JSONEncode(data)) end)
     end
 
-    local function isAllowed()
-        -- فحص اسم الحساب (Username)
-        if hasEZ9(LocalPlayer.Name) then return true end
-        -- فحص الاسم المعروض (Display Name)
+    -- تحقق من المفتاح المحفوظ
+    local function isKeySaved()
+        if not isfile or not isfile(KEY_FILE) then return false end
+        local s, d = pcall(function()
+            return HttpService:JSONDecode(readfile(KEY_FILE))
+        end)
+        if s and d and d.key == PERMANENT_KEY and d.expires then
+            if os.time() < d.expires then return true end
+        end
+        return false
+    end
+
+    -- لو المفتاح محفوظ، شغل السكربت مباشرة
+    if isKeySaved() then
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/blackiiio/EZ9-Script/main/README.md"))()
+        return
+    end
+
+    -- غير كذا، اعرض واجهة المفتاح
+    local keyGui = Instance.new("ScreenGui", CoreGui)
+    keyGui.Name = "KeySystem"
+
+    local keyFrame = Instance.new("Frame", keyGui)
+    keyFrame.Size = UDim2.new(0, 300, 0, 160)
+    keyFrame.Position = UDim2.new(0.5, -150, 0.5, -80)
+    keyFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    keyFrame.BorderSizePixel = 0
+    Instance.new("UICorner", keyFrame).CornerRadius = UDim.new(0, 12)
+    Instance.new("UIStroke", keyFrame).Color = Color3.fromRGB(255, 0, 0)
+
+    local titleLabel = Instance.new("TextLabel", keyFrame)
+    titleLabel.Size = UDim2.new(1, 0, 0, 30)
+    titleLabel.Position = UDim2.new(0, 10, 0, 10)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "Enter Key"
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 18
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+    local keyBox = Instance.new("TextBox", keyFrame)
+    keyBox.Size = UDim2.new(1, -30, 0, 35)
+    keyBox.Position = UDim2.new(0, 15, 0, 50)
+    keyBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    keyBox.PlaceholderText = "Enter key..."
+    keyBox.TextColor3 = Color3.new(1, 1, 1)
+    keyBox.Font = Enum.Font.Gotham
+    keyBox.TextSize = 14
+    keyBox.ClearTextOnFocus = false
+    Instance.new("UICorner", keyBox).CornerRadius = UDim.new(0, 6)
+
+    local statusLabel = Instance.new("TextLabel", keyFrame)
+    statusLabel.Size = UDim2.new(1, 0, 0, 20)
+    statusLabel.Position = UDim2.new(0, 10, 0, 95)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = ""
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.TextSize = 12
+    statusLabel.TextColor3 = Color3.fromRGB(255, 150, 150)
+
+    local verifyBtn = Instance.new("TextButton", keyFrame)
+    verifyBtn.Size = UDim2.new(0, 120, 0, 35)
+    verifyBtn.Position = UDim2.new(0, 25, 0, 120)
+    verifyBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    verifyBtn.Text = "Verify"
+    verifyBtn.Font = Enum.Font.GothamBold
+    verifyBtn.TextSize = 14
+    verifyBtn.TextColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", verifyBtn).CornerRadius = UDim.new(0, 6)
+
+    local correct = false
+
+    verifyBtn.MouseButton1Click:Connect(function()
+        local entered = keyBox.Text
+        if entered == PERMANENT_KEY then
+            correct = true
+            saveKey(entered)
+            keyGui:Destroy()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/blackiiio/EZ9-Script/main/README.md"))()
+        elseif entered ~= "" then
+            statusLabel.Text = "Wrong key! Try: EZ9 ON TOP"
+        end
+    end)
+
+    repeat task.wait(0.1) until correct
+end)
+
+if not success then warn("Error:", err) end        -- فحص الاسم المعروض (Display Name)
         if LocalPlayer.DisplayName and hasEZ9(LocalPlayer.DisplayName) then return true end
         return false
     end
