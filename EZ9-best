@@ -1,0 +1,581 @@
+-- =====================================================
+-- EZ9 Hub | BLACK_AL7OOB | سبام مخفي عبر cmdbar + حماية
+-- =====================================================
+repeat task.wait() until game:IsLoaded()
+local plr = game.Players.LocalPlayer
+
+-- ========== الطرد (أول 3 حروف من اسم الحساب) ==========
+local namePrefix = string.sub(plr.Name, 1, 3):upper()
+if namePrefix ~= "EZ9" then
+    plr:Kick("انت غير مسموحلك بإستخدام السكربت")
+    return
+end
+
+-- ========== شاشة ترحيب ==========
+local splash = Instance.new("ScreenGui", plr.PlayerGui)
+local bg = Instance.new("Frame", splash)
+bg.Size = UDim2.new(1,0,1,0)
+bg.BackgroundColor3 = Color3.new(0,0,0)
+local cnt = Instance.new("Frame", bg)
+cnt.Size = UDim2.new(0,200,0,60)
+cnt.Position = UDim2.new(0.5,-100,0.5,-30)
+cnt.BackgroundTransparency = 1
+local lb1 = Instance.new("TextLabel", cnt)
+lb1.Size = UDim2.new(0,70,1,0)
+lb1.BackgroundTransparency = 1
+lb1.Text = "EZ9"
+lb1.TextColor3 = Color3.new(1,1,1)
+lb1.TextScaled = true
+lb1.Font = Enum.Font.GothamBold
+local bx = Instance.new("Frame", cnt)
+bx.Size = UDim2.new(0,80,0,40)
+bx.Position = UDim2.new(0,80,0.5,-20)
+bx.BackgroundColor3 = Color3.fromRGB(255,150,0)
+Instance.new("UICorner", bx).CornerRadius = UDim.new(0,6)
+local lb2 = Instance.new("TextLabel", bx)
+lb2.Size = UDim2.new(1,0,1,0)
+lb2.BackgroundTransparency = 1
+lb2.Text = "BLACK"
+lb2.TextColor3 = Color3.new(0,0,0)
+lb2.TextScaled = true
+lb2.Font = Enum.Font.GothamBold
+task.wait(1)
+splash:Destroy()
+
+-- ========== دوال مساعدة ==========
+local function makeDraggable(obj)
+    local dragging, startInput, startPos
+    obj.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            startInput = input.Position
+            startPos = obj.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - startInput
+            obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset+delta.X, startPos.Y.Scale, startPos.Y.Offset+delta.Y)
+            startPos = obj.Position
+            startInput = input.Position
+        end
+    end)
+end
+
+-- ========== دالة الإرسال عبر cmdbar و cmdbar2 ==========
+local function sendViaCmdBar(msg)
+    if msg == "" then return false end
+    local success = false
+    pcall(function()
+        local rs = game:GetService("ReplicatedStorage")
+        
+        -- الطريقة 1: عبر HDAdmin
+        local hd = rs:FindFirstChild("HDAdminHDClient")
+        if hd and hd.Signals then
+            hd.Signals.RequestCommandModification:InvokeServer(msg)
+            success = true
+        end
+        
+        -- الطريقة 2: عبر cmdbar
+        local cmdbar = rs:FindFirstChild("CmdBar") or rs:FindFirstChild("cmdbar")
+        if cmdbar then
+            cmdbar:FireServer(msg)
+            success = true
+        end
+        
+        -- الطريقة 3: عبر cmdbar2
+        local cmdbar2 = rs:FindFirstChild("CmdBar2") or rs:FindFirstChild("cmdbar2")
+        if cmdbar2 then
+            cmdbar2:FireServer(msg)
+            success = true
+        end
+        
+        -- الطريقة 4: عبر الشات العادي
+        if not success then
+            local chat = rs:FindFirstChild("DefaultChatSystemChatEvents")
+            if chat and chat:FindFirstChild("SayMessageRequest") then
+                chat.SayMessageRequest:FireServer(msg, "All")
+                success = true
+            end
+        end
+    end)
+    return success
+end
+
+-- ========== زر القائمة الدائري ==========
+local toggleGui = Instance.new("ScreenGui", plr.PlayerGui)
+toggleGui.Name = "EZ9Toggle"
+local toggleBtn = Instance.new("TextButton", toggleGui)
+toggleBtn.Size = UDim2.new(0,55,0,55)
+toggleBtn.Position = UDim2.new(1,-70,0.5,-27)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(180,20,20)
+toggleBtn.Text = "EZ"
+toggleBtn.Font = Enum.Font.GothamBlack
+toggleBtn.TextSize = 20
+toggleBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1,0)
+makeDraggable(toggleBtn)
+
+-- ========== النافذة الرئيسية ==========
+local mainFrame = Instance.new("Frame", toggleGui)
+mainFrame.Size = UDim2.new(0,420,0,680)
+mainFrame.Position = UDim2.new(0.5,-210,0.5,-340)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15,0,0)
+mainFrame.Visible = false
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0,14)
+local ms = Instance.new("UIStroke", mainFrame)
+ms.Color = Color3.fromRGB(255,30,30); ms.Thickness = 1.2
+
+-- شريط العنوان
+local titleBar = Instance.new("TextLabel", mainFrame)
+titleBar.BackgroundTransparency = 1
+titleBar.Size = UDim2.new(1,0,0,36)
+titleBar.Position = UDim2.new(0,10,0,6)
+titleBar.Text = "EZ9 HUB"
+titleBar.Font = Enum.Font.GothamBlack
+titleBar.TextSize = 24
+titleBar.TextColor3 = Color3.fromRGB(255,40,40)
+titleBar.TextXAlignment = Enum.TextXAlignment.Left
+
+local closeBtn = Instance.new("TextButton", mainFrame)
+closeBtn.AnchorPoint = Vector2.new(1,0)
+closeBtn.Position = UDim2.new(1,-4,0,8)
+closeBtn.Size = UDim2.new(0,30,0,30)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200,20,20)
+closeBtn.Text = "✕"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,6)
+closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false end)
+makeDraggable(mainFrame)
+
+-- سحب النافذة
+local dragStart, startPos
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragStart = nil end
+        end)
+    end
+end)
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragStart and (input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset+delta.X, startPos.Y.Scale, startPos.Y.Offset+delta.Y)
+    end
+end)
+
+-- ========== تبويبات ==========
+local tabBar = Instance.new("Frame", mainFrame)
+tabBar.Size = UDim2.new(0,80,1,-52)
+tabBar.Position = UDim2.new(0,6,0,46)
+tabBar.BackgroundTransparency = 1
+local tabLayout = Instance.new("UIListLayout", tabBar)
+tabLayout.Padding = UDim.new(0,6)
+tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local pages, tabs = {}, {}
+local function addTab(name, order)
+    local btn = Instance.new("TextButton", tabBar)
+    btn.Size = UDim2.new(1,-12,0,40)
+    btn.LayoutOrder = order
+    btn.BackgroundColor3 = Color3.fromRGB(60,5,5)
+    btn.BackgroundTransparency = 0.4
+    btn.Text = name
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.TextColor3 = Color3.fromRGB(255,160,160)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
+    
+    local page = Instance.new("Frame", mainFrame)
+    page.Size = UDim2.new(1,-100,1,-52)
+    page.Position = UDim2.new(0,84,0,46)
+    page.BackgroundColor3 = Color3.fromRGB(20,0,0)
+    page.BackgroundTransparency = 0.3
+    page.Visible = false
+    Instance.new("UICorner", page).CornerRadius = UDim.new(0,10)
+    
+    pages[name] = page
+    tabs[name] = btn
+    
+    btn.MouseButton1Click:Connect(function()
+        for n,p in pairs(pages) do p.Visible = (n == name) end
+        for n,b in pairs(tabs) do b.BackgroundTransparency = (n == name) and 0 or 0.4 end
+    end)
+    return page
+end
+
+local normalPage = addTab("سبام عادي", 1)
+local hiddenPage = addTab("سبام مخفي", 2)
+local ctrlPage = addTab("تحكم", 3)
+
+-- ========== تبويب "سبام عادي" ==========
+local targetBox = Instance.new("TextBox", normalPage)
+targetBox.Size = UDim2.new(1,-12,0,30)
+targetBox.Position = UDim2.new(0,6,0,46)
+targetBox.BackgroundColor3 = Color3.fromRGB(30,30,40)
+targetBox.PlaceholderText = "اسم اللاعب"
+targetBox.Text = ""
+targetBox.TextColor3 = Color3.new(1,1,1)
+targetBox.Font = Enum.Font.Gotham
+targetBox.TextSize = 12
+Instance.new("UICorner", targetBox).CornerRadius = UDim.new(0,6)
+
+local cmdBox = Instance.new("TextBox", normalPage)
+cmdBox.Size = UDim2.new(0,250,0,30)
+cmdBox.Position = UDim2.new(0,6,0,90)
+cmdBox.BackgroundColor3 = Color3.fromRGB(30,30,40)
+cmdBox.PlaceholderText = "الأمر (مثال: re)"
+cmdBox.Text = "re"
+cmdBox.TextColor3 = Color3.new(1,1,1)
+cmdBox.Font = Enum.Font.Gotham
+cmdBox.TextSize = 12
+Instance.new("UICorner", cmdBox).CornerRadius = UDim.new(0,6)
+
+local prefixBox = Instance.new("TextBox", normalPage)
+prefixBox.Size = UDim2.new(0,55,0,30)
+prefixBox.Position = UDim2.new(1,-70,0,90)
+prefixBox.BackgroundColor3 = Color3.fromRGB(30,30,40)
+prefixBox.Text = ";"
+prefixBox.TextColor3 = Color3.new(1,1,1)
+prefixBox.Font = Enum.Font.GothamBold
+Instance.new("UICorner", prefixBox).CornerRadius = UDim.new(0,6)
+
+local speedBox = Instance.new("TextBox", normalPage)
+speedBox.Size = UDim2.new(0,120,0,30)
+speedBox.Position = UDim2.new(0,6,0,135)
+speedBox.BackgroundColor3 = Color3.fromRGB(30,30,40)
+speedBox.Text = "10"
+speedBox.TextColor3 = Color3.fromRGB(0,255,150)
+speedBox.Font = Enum.Font.GothamBold
+Instance.new("UICorner", speedBox).CornerRadius = UDim.new(0,6)
+
+local spamBtn = Instance.new("TextButton", normalPage)
+spamBtn.Size = UDim2.new(0,140,0,38)
+spamBtn.Position = UDim2.new(0.5,-70,0,180)
+spamBtn.BackgroundColor3 = Color3.fromRGB(0,140,0)
+spamBtn.Text = "تشغيل السبام"
+spamBtn.TextColor3 = Color3.new(1,1,1)
+spamBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", spamBtn).CornerRadius = UDim.new(0,6)
+
+local onceBtn = Instance.new("TextButton", normalPage)
+onceBtn.Size = UDim2.new(0,140,0,35)
+onceBtn.Position = UDim2.new(0.5,-70,0,230)
+onceBtn.BackgroundColor3 = Color3.fromRGB(0,100,180)
+onceBtn.Text = "ارسال مرة وحدة"
+onceBtn.TextColor3 = Color3.new(1,1,1)
+onceBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", onceBtn).CornerRadius = UDim.new(0,6)
+
+local normalStatus = Instance.new("TextLabel", normalPage)
+normalStatus.BackgroundTransparency = 1
+normalStatus.Position = UDim2.new(0,6,1,-25)
+normalStatus.Size = UDim2.new(1,-12,0,20)
+normalStatus.Font = Enum.Font.Gotham
+normalStatus.TextSize = 10
+normalStatus.TextColor3 = Color3.fromRGB(255,150,150)
+
+-- منطق السبام العادي
+local spamActive = false
+local spamThread = nil
+
+local function stopSpam()
+    spamActive = false
+    if spamThread then task.cancel(spamThread) end
+    spamBtn.Text = "تشغيل السبام"
+    spamBtn.BackgroundColor3 = Color3.fromRGB(0,140,0)
+end
+
+local function startSpam()
+    local target = targetBox.Text
+    local cmd = cmdBox.Text
+    if target == "" or cmd == "" then
+        normalStatus.Text = "⚠️ اكتب اسم لاعب وأمراً!"
+        task.wait(2)
+        if normalStatus.Text == "⚠️ اكتب اسم لاعب وأمراً!" then normalStatus.Text = "" end
+        return
+    end
+    
+    local prefix = prefixBox.Text
+    local msg = prefix .. cmd .. " " .. target
+    local speed = tonumber(speedBox.Text) or 10
+    if speed <= 0 then speed = 10 end
+    
+    stopSpam()
+    spamActive = true
+    spamBtn.Text = "⏹ إيقاف"
+    spamBtn.BackgroundColor3 = Color3.fromRGB(180,0,0)
+    
+    spamThread = task.spawn(function()
+        local sent = 0
+        while spamActive do
+            sendViaCmdBar(msg)
+            sent = sent + 1
+            normalStatus.Text = "✓ أرسل: " .. sent .. " | " .. msg
+            task.wait(1 / speed)
+        end
+        spamBtn.Text = "تشغيل السبام"
+        spamBtn.BackgroundColor3 = Color3.fromRGB(0,140,0)
+        normalStatus.Text = ""
+    end)
+end
+
+spamBtn.MouseButton1Click:Connect(function()
+    if spamActive then stopSpam() else startSpam() end
+end)
+
+onceBtn.MouseButton1Click:Connect(function()
+    local target = targetBox.Text
+    local cmd = cmdBox.Text
+    if target == "" or cmd == "" then
+        normalStatus.Text = "⚠️ اكتب اسم لاعب وأمراً!"
+        task.wait(2)
+        if normalStatus.Text == "⚠️ اكتب اسم لاعب وأمراً!" then normalStatus.Text = "" end
+        return
+    end
+    local prefix = prefixBox.Text
+    local msg = prefix .. cmd .. " " .. target
+    sendViaCmdBar(msg)
+    normalStatus.Text = "✓ تم الإرسال: " .. msg
+    task.wait(1.5)
+    if normalStatus.Text == "✓ تم الإرسال: " .. msg then normalStatus.Text = "" end
+end)
+
+-- ========== تبويب "سبام مخفي" (عبر cmdbar) ==========
+local hiddenMsg = Instance.new("TextBox", hiddenPage)
+hiddenMsg.Size = UDim2.new(1,-12,0,40)
+hiddenMsg.Position = UDim2.new(0,6,0,46)
+hiddenMsg.BackgroundColor3 = Color3.fromRGB(30,30,40)
+hiddenMsg.PlaceholderText = "اكتب الأمر المخفي (مثال: ;re لاعب أو ;fly)"
+hiddenMsg.Text = ";fly"
+hiddenMsg.TextColor3 = Color3.new(1,0.8,0)
+hiddenMsg.Font = Enum.Font.Gotham
+hiddenMsg.TextSize = 12
+Instance.new("UICorner", hiddenMsg).CornerRadius = UDim.new(0,6)
+
+local hiddenSpeed = Instance.new("TextBox", hiddenPage)
+hiddenSpeed.Size = UDim2.new(0,120,0,32)
+hiddenSpeed.Position = UDim2.new(0,6,0,100)
+hiddenSpeed.BackgroundColor3 = Color3.fromRGB(30,30,40)
+hiddenSpeed.Text = "50"
+hiddenSpeed.TextColor3 = Color3.fromRGB(255,100,100)
+hiddenSpeed.Font = Enum.Font.GothamBold
+hiddenSpeed.TextSize = 12
+Instance.new("UICorner", hiddenSpeed).CornerRadius = UDim.new(0,6)
+
+local hiddenSpeedLabel = Instance.new("TextLabel", hiddenPage)
+hiddenSpeedLabel.Size = UDim2.new(0,100,0,32)
+hiddenSpeedLabel.Position = UDim2.new(0,135,0,100)
+hiddenSpeedLabel.BackgroundTransparency = 1
+hiddenSpeedLabel.Text = "سرعة (مرات/ث)"
+hiddenSpeedLabel.TextColor3 = Color3.fromRGB(200,200,200)
+hiddenSpeedLabel.Font = Enum.Font.Gotham
+hiddenSpeedLabel.TextSize = 11
+
+local hiddenAmount = Instance.new("TextBox", hiddenPage)
+hiddenAmount.Size = UDim2.new(0,120,0,32)
+hiddenAmount.Position = UDim2.new(0,6,0,145)
+hiddenAmount.BackgroundColor3 = Color3.fromRGB(30,30,40)
+hiddenAmount.Text = "10"
+hiddenAmount.TextColor3 = Color3.fromRGB(100,200,255)
+hiddenAmount.Font = Enum.Font.GothamBold
+hiddenAmount.TextSize = 12
+Instance.new("UICorner", hiddenAmount).CornerRadius = UDim.new(0,6)
+
+local hiddenAmountLabel = Instance.new("TextLabel", hiddenPage)
+hiddenAmountLabel.Size = UDim2.new(0,100,0,32)
+hiddenAmountLabel.Position = UDim2.new(0,135,0,145)
+hiddenAmountLabel.BackgroundTransparency = 1
+hiddenAmountLabel.Text = "عدد لكل دفعة"
+hiddenAmountLabel.TextColor3 = Color3.fromRGB(200,200,200)
+hiddenAmountLabel.Font = Enum.Font.Gotham
+hiddenAmountLabel.TextSize = 11
+
+local hiddenSpamBtn = Instance.new("TextButton", hiddenPage)
+hiddenSpamBtn.Size = UDim2.new(0,200,0,45)
+hiddenSpamBtn.Position = UDim2.new(0.5,-100,0,195)
+hiddenSpamBtn.BackgroundColor3 = Color3.fromRGB(180,80,0)
+hiddenSpamBtn.Text = "تشغيل السبام المخفي"
+hiddenSpamBtn.TextColor3 = Color3.new(1,1,1)
+hiddenSpamBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", hiddenSpamBtn).CornerRadius = UDim.new(0,6)
+
+local hiddenStatus = Instance.new("TextLabel", hiddenPage)
+hiddenStatus.BackgroundTransparency = 1
+hiddenStatus.Position = UDim2.new(0,6,1,-25)
+hiddenStatus.Size = UDim2.new(1,-12,0,20)
+hiddenStatus.Font = Enum.Font.Gotham
+hiddenStatus.TextSize = 10
+hiddenStatus.TextColor3 = Color3.fromRGB(255,150,150)
+
+-- منطق السبام المخفي (عبر cmdbar)
+local hiddenActive = false
+local hiddenThread = nil
+
+local function stopHiddenSpam()
+    hiddenActive = false
+    if hiddenThread then task.cancel(hiddenThread) end
+    hiddenSpamBtn.Text = "تشغيل السبام المخفي"
+    hiddenSpamBtn.BackgroundColor3 = Color3.fromRGB(180,80,0)
+end
+
+local function startHiddenSpam()
+    local msg = hiddenMsg.Text
+    if msg == "" then
+        hiddenStatus.Text = "⚠️ اكتب أمراً مخفياً!"
+        task.wait(2)
+        if hiddenStatus.Text == "⚠️ اكتب أمراً مخفياً!" then hiddenStatus.Text = "" end
+        return
+    end
+    
+    local speed = tonumber(hiddenSpeed.Text) or 50
+    if speed <= 0 then speed = 50 end
+    
+    local amount = tonumber(hiddenAmount.Text) or 10
+    if amount <= 0 then amount = 10 end
+    
+    stopHiddenSpam()
+    hiddenActive = true
+    hiddenSpamBtn.Text = "⏹ إيقاف السبام المخفي"
+    hiddenSpamBtn.BackgroundColor3 = Color3.fromRGB(180,0,0)
+    
+    hiddenThread = task.spawn(function()
+        local totalSent = 0
+        while hiddenActive do
+            for i = 1, amount do
+                if not hiddenActive then break end
+                sendViaCmdBar(msg)
+                totalSent = totalSent + 1
+            end
+            hiddenStatus.Text = "✓ أرسل " .. totalSent .. " أمر (دفعة " .. amount .. ")"
+            hiddenStatus.TextColor3 = Color3.fromRGB(100,255,100)
+            task.wait(1 / speed)
+        end
+        hiddenSpamBtn.Text = "تشغيل السبام المخفي"
+        hiddenSpamBtn.BackgroundColor3 = Color3.fromRGB(180,80,0)
+        hiddenStatus.Text = ""
+    end)
+end
+
+hiddenSpamBtn.MouseButton1Click:Connect(function()
+    if hiddenActive then stopHiddenSpam() else startHiddenSpam() end
+end)
+
+-- ========== تبويب "تحكم" ==========
+local ctrlScr = Instance.new("ScrollingFrame", ctrlPage)
+ctrlScr.Position = UDim2.new(0,2,0,4)
+ctrlScr.Size = UDim2.new(1,-4,1,-8)
+ctrlScr.BackgroundTransparency = 1
+ctrlScr.ScrollBarThickness = 4
+ctrlScr.CanvasSize = UDim2.new(0,0,0,0)
+
+local ctrlList = Instance.new("UIListLayout", ctrlScr)
+ctrlList.Padding = UDim.new(0,6)
+ctrlList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    ctrlScr.CanvasSize = UDim2.new(0,0,0, ctrlList.AbsoluteContentSize.Y + 10)
+end)
+
+local function mkBtn(text, c1, c2)
+    local b = Instance.new("TextButton", ctrlScr)
+    b.Size = UDim2.new(1,-8,0,42)
+    b.BackgroundColor3 = Color3.fromRGB(180,30,30)
+    b.BackgroundTransparency = 0.2
+    b.Text = text
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 14
+    b.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
+    local g = Instance.new("UIGradient", b)
+    g.Color = ColorSequence.new{ColorSequenceKeypoint.new(0,c1), ColorSequenceKeypoint.new(1,c2)}
+    g.Rotation = 90
+    return b
+end
+
+-- أزرار التحكم
+local spinOn = mkBtn("🔄 تشغيل الدوران", Color3.fromRGB(140,220,40), Color3.fromRGB(80,150,20))
+local spinOff = mkBtn("⏹ إيقاف الدوران", Color3.fromRGB(170,30,30), Color3.fromRGB(110,15,15))
+local protectBtn = mkBtn("🛡️ حماية (تنظيف)", Color3.fromRGB(70,20,140), Color3.fromRGB(120,40,200))
+
+local ctrlStat = Instance.new("TextLabel", ctrlPage)
+ctrlStat.BackgroundTransparency = 1
+ctrlStat.Position = UDim2.new(0,4,1,-18)
+ctrlStat.Size = UDim2.new(1,-8,0,16)
+ctrlStat.Font = Enum.Font.Gotham
+ctrlStat.TextSize = 10
+ctrlStat.TextColor3 = Color3.fromRGB(255,150,150)
+
+-- وظيفة الحماية (لن تحذف cmdbar أو cmdbar2)
+protectBtn.MouseButton1Click:Connect(function()
+    protectBtn.Text = "جاري..."
+    protectBtn.BackgroundColor3 = Color3.fromRGB(150,100,50)
+    task.wait(0.1)
+    pcall(function()
+        -- حذف NightVision فقط
+        local assets = game:GetService("ReplicatedStorage"):FindFirstChild("HDAdminHDClient")
+        if assets and assets:FindFirstChild("Assets") and assets.Assets:FindFirstChild("NightVision") then
+            assets.Assets.NightVision:Destroy()
+        end
+        
+        -- حذف واجهة HDAdmin فقط (نترك cmdbar و cmdbar2)
+        local playerGui = plr:FindFirstChild("PlayerGui")
+        if playerGui then
+            for _, c in pairs(playerGui:GetChildren()) do
+                if c.Name:lower() == "hdadmininterface" or c.Name:lower() == "hdadmin" then
+                    c:Destroy()
+                end
+            end
+        end
+        
+        protectBtn.Text = "✓ تم التنظيف"
+        protectBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
+        task.wait(1.5)
+        protectBtn.Text = "🛡️ حماية (تنظيف)"
+        protectBtn.BackgroundColor3 = Color3.fromRGB(70,20,140)
+    end)
+end)
+
+-- الدوران
+local spinning = false
+spinOn.MouseButton1Click:Connect(function()
+    spinning = true
+    ctrlStat.Text = "✓ تم تشغيل الدوران"
+    task.wait(1.5)
+    if ctrlStat.Text == "✓ تم تشغيل الدوران" then ctrlStat.Text = "" end
+end)
+spinOff.MouseButton1Click:Connect(function()
+    spinning = false
+    ctrlStat.Text = "✓ تم إيقاف الدوران"
+    task.wait(1.5)
+    if ctrlStat.Text == "✓ تم إيقاف الدوران" then ctrlStat.Text = "" end
+end)
+
+game:GetService("RunService").Heartbeat:Connect(function()
+    if spinning and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+        plr.Character.HumanoidRootPart.CFrame = plr.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(50), 0)
+    end
+end)
+
+-- تحديث حجم التمرير
+task.wait()
+ctrlScr.CanvasSize = UDim2.new(0,0,0, ctrlList.AbsoluteContentSize.Y + 20)
+
+-- فتح القائمة
+local menuOpen = false
+toggleBtn.MouseButton1Click:Connect(function()
+    menuOpen = not menuOpen
+    mainFrame.Visible = menuOpen
+    toggleBtn.BackgroundColor3 = menuOpen and Color3.fromRGB(0,150,0) or Color3.fromRGB(180,20,20)
+    toggleBtn.Text = menuOpen and "X" or "EZ"
+end)
+
+-- ظهور التبويب الأول
+pages["سبام عادي"].Visible = true
+tabs["سبام عادي"].BackgroundTransparency = 0
+
+print("EZ9 Hub | تم التشغيل بنجاح | سبام مخفي عبر cmdbar")
