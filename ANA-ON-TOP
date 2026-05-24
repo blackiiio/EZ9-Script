@@ -1,26 +1,871 @@
--- =====================================================
--- EZ9 Hub | BLACK_AL7OOB | حماية لاسم EZ9 + تمرير محسن
--- =====================================================
-local s, e = pcall(function()
-    repeat task.wait() until game:IsLoaded()
-    local plr = game.Players.LocalPlayer
-    local rs = game.ReplicatedStorage
-    local uis = game.UserInputService
-    local plrs = game.Players
-    local cg = game.CoreGui
-    local ts = game.TweenService
-    local run = game.RunService
-    local http = game.HttpService
-    local guiParent = plr.PlayerGui
+--[[
+    🔒 ANA BLACK v3.0 — THE ULTIMATE (OPEN SOURCE EDITION)
+    Architecture : Hyper-Fast · Multi-Channel · God-Tier Protection
+    Edits: Zero-Delay Spam & Extreme Frame-Rate Protection Active.
+--]]
 
-    -- شاشة ترحيب
-    local sp = Instance.new("ScreenGui", guiParent)
-    local bg = Instance.new("Frame", sp)
-    bg.Size = UDim2.new(1,0,1,0)
-    bg.BackgroundColor3 = Color3.new(0,0,0)
-    local cnt = Instance.new("Frame", bg)
-    cnt.Size = UDim2.new(0,200,0,60)
-    cnt.Position = UDim2.new(0.5,-100,0.5,-30)
+repeat task.wait() until game:IsLoaded()
+
+-- SERVICES
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+
+local Client = Players.LocalPlayer
+local PlayerGui = Client:WaitForChild("PlayerGui")
+
+-- SPLASH SCREEN
+local SplashScreen = Instance.new("ScreenGui", PlayerGui)
+local SplashBackground = Instance.new("Frame", SplashScreen)
+SplashBackground.Size = UDim2.new(1,0,1,0)
+SplashBackground.BackgroundColor3 = Color3.new(0,0,0)
+local SplashContainer = Instance.new("Frame", SplashBackground)
+SplashContainer.Size = UDim2.new(0,200,0,60)
+SplashContainer.Position = UDim2.new(0.5,-100,0.5,-30)
+SplashContainer.BackgroundTransparency = 1
+local SplashLabelANA = Instance.new("TextLabel", SplashContainer)
+SplashLabelANA.Size = UDim2.new(0,70,1,0)
+SplashLabelANA.BackgroundTransparency = 1
+SplashLabelANA.Text = "ANA"
+SplashLabelANA.TextColor3 = Color3.new(1,1,1)
+SplashLabelANA.TextScaled = true
+SplashLabelANA.Font = Enum.Font.GothamBold
+local SplashBadge = Instance.new("Frame", SplashContainer)
+SplashBadge.Size = UDim2.new(0,80,0,40)
+SplashBadge.Position = UDim2.new(0,80,0.5,-20)
+SplashBadge.BackgroundColor3 = Color3.fromRGB(255,150,0)
+Instance.new("UICorner", SplashBadge).CornerRadius = UDim.new(0,6)
+local SplashLabelBLACK = Instance.new("TextLabel", SplashBadge)
+SplashLabelBLACK.Size = UDim2.new(1,0,1,0)
+SplashLabelBLACK.BackgroundTransparency = 1
+SplashLabelBLACK.Text = "BLACK"
+SplashLabelBLACK.TextColor3 = Color3.new(0,0,0)
+SplashLabelBLACK.TextScaled = true
+SplashLabelBLACK.Font = Enum.Font.GothamBold
+task.wait(1)
+SplashScreen:Destroy()
+
+-- REMOTE DETECTION
+local CommandRemote = nil
+for _, Object in ipairs(ReplicatedStorage:GetDescendants()) do
+    if Object:IsA("RemoteFunction") and (Object.Name:lower():find("request") or Object.Name:lower():find("command")) then
+        CommandRemote = Object
+        break
+    end
+end
+
+-- CONFIGURATION
+local Prefix = ";"
+local CurrentTitle = "ANA"
+local TitleRemote = ReplicatedStorage:FindFirstChild("ApplyTitle")
+
+-- STATE
+local Housing = { Active = false, Thread = nil, OriginalSkin = {} }
+local Spam = { Active = false, Thread = nil, Mode = nil, Target = "", Speed = 0.001, Commands = {re=1, logs=1, nv=1, explode=1} }
+local HiddenSpam = { Active = false, Thread = nil, Target = "", Speed = 0.001, Commands = {re=1, logs=1, nv=1, explode=1} }
+local Protection = { Active = false, Thread = nil }
+local Rainbow = { Active = false, Thread = nil, Index = 0 }
+
+-- ====== ترتيب الأوامر (واحد من كل أمر بالدور) ======
+local function BuildMessage(Commands, Target)
+    local UniqueCmds = {}
+    local Seen = {}
+    for Cmd, Count in pairs(Commands) do
+        if Count > 0 and not Seen[Cmd] then
+            table.insert(UniqueCmds, Cmd)
+            Seen[Cmd] = true
+        end
+    end
+    
+    local Parts = {}
+    local Remaining = {}
+    for Cmd, Count in pairs(Commands) do
+        Remaining[Cmd] = Count
+    end
+    
+    local Done = false
+    while not Done do
+        Done = true
+        for _, Cmd in ipairs(UniqueCmds) do
+            if Remaining[Cmd] and Remaining[Cmd] > 0 then
+                table.insert(Parts, Prefix .. Cmd .. " " .. Target)
+                Remaining[Cmd] = Remaining[Cmd] - 1
+                Done = false
+            end
+        end
+    end
+    
+    return table.concat(Parts, " ")
+end
+
+-- ====== HIDDEN SPAM (أقوى سرعة إرسال فوري) ======
+local function SendHiddenMessage(Message)
+    if HiddenSpam.Target == "" then return end
+    task.spawn(function() pcall(function() CommandRemote:InvokeServer(Message) end) end)
+    task.spawn(function()
+        pcall(function()
+            local HDClient = ReplicatedStorage:FindFirstChild("HDAdminHDClient")
+            if HDClient and HDClient.Signals then HDClient.Signals.RequestCommandModification:InvokeServer(Message) end
+        end)
+    end)
+    task.spawn(function()
+        pcall(function()
+            local CmdBar = ReplicatedStorage:FindFirstChild("cmdbar2")
+            if CmdBar then CmdBar:FireServer(Message) end
+        end)
+    end)
+end
+
+function HiddenSpam:Start()
+    if self.Thread then task.cancel(self.Thread) end
+    self.Active = true
+    self.Thread = task.spawn(function()
+        while self.Active do
+            local Message = BuildMessage(self.Commands, self.Target)
+            if Message ~= "" then SendHiddenMessage(Message) end
+            task.wait(self.Speed) -- سرعة قصوى معدلة مجدداً للاختراق
+        end
+    end)
+end
+
+function HiddenSpam:Stop()
+    self.Active = false
+    if self.Thread then task.cancel(self.Thread) end
+end
+
+-- ====== SPAM (عادي + وهمي فائق السرعة) ======
+function Spam:Start()
+    if self.Thread then task.cancel(self.Thread) end
+    self.Active = true
+    self.Thread = task.spawn(function()
+        while self.Active do
+            local Message = BuildMessage(self.Commands, self.Target)
+            
+            if Message ~= "" then
+                if self.Mode == "ghost" then
+                    task.spawn(function()
+                        pcall(function()
+                            local RemoteEvents = ReplicatedStorage:FindFirstChild("RemoteEvents")
+                            if RemoteEvents then
+                                local ChatEvent = RemoteEvents:FindFirstChild("ChatEvent")
+                                if ChatEvent then ChatEvent:FireServer(Message) end
+                            end
+                        end)
+                    end)
+                    task.spawn(function()
+                        pcall(function()
+                            local HDClient = ReplicatedStorage:FindFirstChild("HDAdminHDClient")
+                            if HDClient and HDClient.Signals then
+                                HDClient.Signals.RequestCommandModification:InvokeServer(Message)
+                            end
+                        end)
+                    end)
+                elseif self.Mode == "normal" then
+                    local ShortMsg = Message:gsub(self.Target, self.Target:sub(1,2))
+                    task.spawn(function()
+                        pcall(function()
+                            local RemoteEvents = ReplicatedStorage:FindFirstChild("RemoteEvents")
+                            if RemoteEvents then
+                                local ChatEvent = RemoteEvents:FindFirstChild("ChatEvent")
+                                if ChatEvent then ChatEvent:FireServer(ShortMsg) end
+                            end
+                        end)
+                    end)
+                    task.spawn(function()
+                        pcall(function()
+                            local HDClient = ReplicatedStorage:FindFirstChild("HDAdminHDClient")
+                            if HDClient and HDClient.Signals then
+                                HDClient.Signals.RequestCommandModification:InvokeServer(ShortMsg)
+                            end
+                        end)
+                    end)
+                end
+            end
+            task.wait(self.Speed)
+        end
+    end)
+end
+
+function Spam:Stop()
+    self.Active = false
+    if self.Thread then task.cancel(self.Thread) end
+end
+
+-- HOUSING (حماية السكن فائقة التكرار)
+local function SaveOriginalSkin()
+    Housing.OriginalSkin = {}
+    local Character = Client.Character
+    if not Character then return end
+    for _, Part in ipairs(Character:GetDescendants()) do
+        if Part:IsA("BasePart") then
+            Housing.OriginalSkin[Part] = {Color=Part.Color, Material=Part.Material, Size=Part.Size, Transparency=Part.Transparency}
+        end
+    end
+end
+
+local function SendResetSkin()
+    if not CommandRemote then return end
+    pcall(function() CommandRemote:InvokeServer("resetskin "..Client.Name) end)
+    pcall(function() CommandRemote:InvokeServer("reset "..Client.Name) end)
+end
+
+function Housing:Start()
+    if self.Thread then task.cancel(self.Thread) end
+    self.Active = true
+    SaveOriginalSkin()
+    self.Thread = task.spawn(function() while self.Active do SendResetSkin() task.wait(0.01) end end)
+end
+
+function Housing:Stop()
+    self.Active = false
+    if self.Thread then task.cancel(self.Thread) end
+end
+
+Client.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if Housing.Active then SaveOriginalSkin() end
+end)
+
+-- ====== PROTECTION (تحديث التعديل الخارق: الفحص والحذف الفوري في كل فريم) ======
+RunService.Heartbeat:Connect(function()
+    if Protection.Active then
+        pcall(function()
+            for _, g in pairs(PlayerGui:GetChildren()) do
+                local name = g.Name:lower()
+                if g.Name ~= "ANAToggle" and g.Name ~= "ANAHUB" then
+                    if name:find("hdadmin") or name:find("admin") or name:find("hub") or name:find("copy") or 
+                       name:find("script") or name:find("night") or name:find("vision") or name:find("nv") then
+                        g:Destroy()
+                    end
+                end
+            end
+            for _, c in pairs(CoreGui:GetChildren()) do
+                local name = c.Name:lower()
+                if name:find("hdadmin") or name:find("admin") or name:find("night") or name:find("vision") then
+                    c:Destroy()
+                end
+            end
+            for _, obj in pairs(game:GetDescendants()) do
+                if obj:IsA("Highlight") or obj:IsA("ColorCorrectionEffect") or obj:IsA("BlurEffect") or obj:IsA("BloomEffect") or obj:IsA("SunRaysEffect") then 
+                    obj:Destroy() 
+                end
+            end
+        end)
+    end
+end)
+
+function Protection:Start()
+    self.Active = true
+end
+
+function Protection:Stop()
+    self.Active = false
+end
+
+-- RAINBOW
+function Rainbow:Start()
+    if self.Thread then task.cancel(self.Thread) end
+    self.Active = true
+    self.Thread = task.spawn(function()
+        while self.Active do
+            self.Index = (self.Index + 5) % 360
+            if TitleRemote then
+                pcall(function() TitleRemote:FireServer(CurrentTitle, Color3.fromHSV(self.Index/360, 1, 1), "Title1") end)
+            end
+            task.wait(0.05)
+        end
+    end)
+end
+
+function Rainbow:Stop()
+    self.Active = false
+    if self.Thread then task.cancel(self.Thread) end
+end
+
+-- TOGGLE BUTTON
+local ToggleGui = Instance.new("ScreenGui", PlayerGui)
+ToggleGui.Name = "ANAToggle"
+ToggleGui.ResetOnSpawn = false
+local ToggleBtn = Instance.new("TextButton", ToggleGui)
+ToggleBtn.Size = UDim2.new(0,55,0,55)
+ToggleBtn.Position = UDim2.new(1,-65,0.5,-27.5)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(180,20,20)
+ToggleBtn.Text = "ANA"
+ToggleBtn.Font = Enum.Font.GothamBlack
+ToggleBtn.TextSize = 16
+ToggleBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1,0)
+
+-- DRAG UTILITY
+local function MakeDraggable(Object)
+    local Dragging, StartInput, StartPos
+    Object.InputBegan:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+            Dragging = true; StartInput = Input.Position; StartPos = Object.Position
+            Input.Changed:Connect(function() if Input.UserInputState == Enum.UserInputState.End then Dragging = false end end)
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(Input)
+        if Dragging and (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then
+            local Delta = Input.Position - StartInput
+            Object.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset+Delta.X, StartPos.Y.Scale, StartPos.Y.Offset+Delta.Y)
+        end
+    end)
+end
+MakeDraggable(ToggleBtn)
+
+-- MAIN UI BUILDER
+local MainGui, MainFrame
+local function BuildMainUI()
+    if MainGui then return end
+    MainGui = Instance.new("ScreenGui", PlayerGui)
+    MainGui.Name = "ANAHUB"
+    MainGui.ResetOnSpawn = false
+    
+    MainFrame = Instance.new("Frame", MainGui)
+    MainFrame.Size = UDim2.new(0,420,0,650)
+    MainFrame.Position = UDim2.new(0.5,-210,0.5,-325)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(15,0,0)
+    MainFrame.Visible = false
+    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0,14)
+    local MainStroke = Instance.new("UIStroke", MainFrame)
+    MainStroke.Color = Color3.fromRGB(255,30,30); MainStroke.Thickness = 1.2
+
+    local TitleBar = Instance.new("TextLabel", MainFrame)
+    TitleBar.BackgroundTransparency = 1
+    TitleBar.Size = UDim2.new(1,0,0,36)
+    TitleBar.Position = UDim2.new(0,10,0,6)
+    TitleBar.Text = "ANA BLACK"
+    TitleBar.Font = Enum.Font.GothamBlack
+    TitleBar.TextSize = 24
+    TitleBar.TextColor3 = Color3.fromRGB(255,40,40)
+    TitleBar.TextXAlignment = Enum.TextXAlignment.Left
+
+    local CloseBtn = Instance.new("TextButton", MainFrame)
+    CloseBtn.AnchorPoint = Vector2.new(1,0)
+    CloseBtn.Position = UDim2.new(1,-4,0,8)
+    CloseBtn.Size = UDim2.new(0,30,0,30)
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(200,20,20)
+    CloseBtn.Text = "X"
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.TextSize = 16
+    CloseBtn.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0,6)
+    CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
+    MakeDraggable(MainFrame)
+
+    -- TABS
+    local TabBar = Instance.new("Frame", MainFrame)
+    TabBar.Size = UDim2.new(0,80,1,-52)
+    TabBar.Position = UDim2.new(0,6,0,46)
+    TabBar.BackgroundTransparency = 1
+    local TabLayout = Instance.new("UIListLayout", TabBar)
+    TabLayout.Padding = UDim.new(0,6)
+    TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    
+    local Pages, Tabs = {}, {}
+    local function AddTab(Name, Order)
+        local Button = Instance.new("TextButton", TabBar)
+        Button.Size = UDim2.new(1,-12,0,40)
+        Button.LayoutOrder = Order
+        Button.BackgroundColor3 = Color3.fromRGB(60,5,5)
+        Button.BackgroundTransparency = 0.4
+        Button.Text = Name
+        Button.Font = Enum.Font.GothamBold
+        Button.TextSize = 14
+        Button.TextColor3 = Color3.fromRGB(255,160,160)
+        Instance.new("UICorner", Button).CornerRadius = UDim.new(0,8)
+        
+        local Page = Instance.new("ScrollingFrame", MainFrame)
+        Page.Size = UDim2.new(1,-100,1,-52)
+        Page.Position = UDim2.new(0,84,0,46)
+        Page.BackgroundColor3 = Color3.fromRGB(20,0,0)
+        Page.BackgroundTransparency = 0.3
+        Page.Visible = false
+        Page.ScrollBarThickness = 4
+        Page.CanvasSize = UDim2.new(0,0,0,0)
+        Instance.new("UICorner", Page).CornerRadius = UDim.new(0,10)
+        
+        local PageLayout = Instance.new("UIListLayout", Page)
+        PageLayout.Padding = UDim.new(0,8)
+        PageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            Page.CanvasSize = UDim2.new(0,0,0, PageLayout.AbsoluteContentSize.Y + 20)
+        end)
+        
+        Pages[Name] = Page; Tabs[Name] = Button
+        Button.MouseButton1Click:Connect(function()
+            for N, P in pairs(Pages) do P.Visible = (N == Name) end
+            for N, B in pairs(Tabs) do B.BackgroundTransparency = (N == Name) and 0 or 0.4 end
+        end)
+        return Page
+    end
+
+    local CopyPage = AddTab("نسخ عادي",1)
+    local HiddenCopyPage = AddTab("نسخ مخفي",2)
+    local ProtectPage = AddTab("حماية",3)
+    local ToolsPage = AddTab("أدوات",4)
+
+    -- BUILD COPY PAGE UTILITY
+    local function BuildCopyPage(Page, StateObj, ShowSpamButtons)
+        local PlayerList = Instance.new("ScrollingFrame", Page)
+        PlayerList.Position = UDim2.new(0,4,0,4)
+        PlayerList.Size = UDim2.new(1,-8,0,34)
+        PlayerList.BackgroundColor3 = Color3.fromRGB(40,0,0)
+        PlayerList.BackgroundTransparency = 0.5
+        PlayerList.ScrollingDirection = Enum.ScrollingDirection.X
+        PlayerList.AutomaticCanvasSize = Enum.AutomaticSize.X
+        PlayerList.CanvasSize = UDim2.new(0,0,0,0)
+        Instance.new("UICorner", PlayerList).CornerRadius = UDim.new(0,6)
+        local PlayerListLayout = Instance.new("UIListLayout", PlayerList)
+        PlayerListLayout.FillDirection = Enum.FillDirection.Horizontal
+        PlayerListLayout.Padding = UDim.new(0,4)
+
+        local SelectedLabel = Instance.new("TextLabel", Page)
+        SelectedLabel.BackgroundTransparency = 1
+        SelectedLabel.Position = UDim2.new(0,6,0,46)
+        SelectedLabel.Size = UDim2.new(1,-12,0,18)
+        SelectedLabel.Font = Enum.Font.GothamSemibold
+        SelectedLabel.TextSize = 11
+        SelectedLabel.TextColor3 = Color3.fromRGB(255,180,180)
+        SelectedLabel.Text = "اختر لاعب"
+
+        local NameInput = Instance.new("TextBox", Page)
+        NameInput.Size = UDim2.new(0,150,0,30)
+        NameInput.Position = UDim2.new(0,6,0,70)
+        NameInput.BackgroundColor3 = Color3.fromRGB(50,10,10)
+        NameInput.PlaceholderText = "أو اكتب اسم اللاعب"
+        NameInput.TextColor3 = Color3.new(1,1,1)
+        NameInput.Font = Enum.Font.Gotham
+        NameInput.TextSize = 12
+        Instance.new("UICorner", NameInput).CornerRadius = UDim.new(0,5)
+        NameInput:GetPropertyChangedSignal("Text"):Connect(function()
+            if NameInput.Text ~= "" then StateObj.Target = NameInput.Text; SelectedLabel.Text = "تم: " .. NameInput.Text end
+        end)
+
+        local Chips = {}
+        local function RefreshPlayers()
+            for _, C in ipairs(PlayerList:GetChildren()) do if C:IsA("TextButton") then C:Destroy() end end
+            Chips = {}
+            for _, P in ipairs(Players:GetPlayers()) do
+                if P ~= Client then
+                    local Chip = Instance.new("TextButton", PlayerList)
+                    Chip.Size = UDim2.new(0,0,1,-4)
+                    Chip.AutomaticSize = Enum.AutomaticSize.X
+                    Chip.BackgroundColor3 = Color3.fromRGB(80,10,10)
+                    Chip.BackgroundTransparency = 0.3
+                    Chip.Text = P.Name
+                    Chip.TextSize = 11
+                    Chip.Font = Enum.Font.GothamBold
+                    Chip.TextColor3 = Color3.fromRGB(255,200,200)
+                    Instance.new("UICorner", Chip).CornerRadius = UDim.new(0,6)
+                    Chip.MouseButton1Click:Connect(function()
+                        StateObj.Target = P.Name; SelectedLabel.Text = "تم: " .. P.Name; NameInput.Text = P.Name
+                        for _, C in pairs(Chips) do C.BackgroundColor3 = Color3.fromRGB(80,10,10) end
+                        Chip.BackgroundColor3 = Color3.fromRGB(180,0,0)
+                    end)
+                    Chips[P.Name] = Chip
+                end
+            end
+        end
+        RefreshPlayers()
+        Players.PlayerAdded:Connect(RefreshPlayers)
+        Players.PlayerRemoving:Connect(RefreshPlayers)
+
+        local PrefixBox = Instance.new("TextBox", Page)
+        PrefixBox.Size = UDim2.new(0,55,0,24)
+        PrefixBox.Position = UDim2.new(0,6,0,110)
+        PrefixBox.BackgroundColor3 = Color3.fromRGB(100,10,10)
+        PrefixBox.BackgroundTransparency = 0.3
+        PrefixBox.Text = Prefix
+        PrefixBox.TextColor3 = Color3.new(1,1,1)
+        PrefixBox.Font = Enum.Font.GothamBold
+        PrefixBox.TextSize = 14
+        Instance.new("UICorner", PrefixBox).CornerRadius = UDim.new(0,5)
+        PrefixBox:GetPropertyChangedSignal("Text"):Connect(function() Prefix = PrefixBox.Text end)
+
+        local SpeedBox = Instance.new("TextBox", Page)
+        SpeedBox.Size = UDim2.new(0,70,0,24)
+        SpeedBox.Position = UDim2.new(0,68,0,110)
+        SpeedBox.BackgroundColor3 = Color3.fromRGB(50,10,10)
+        SpeedBox.BackgroundTransparency = 0.3
+        SpeedBox.Text = string.format("%.3f", StateObj.Speed)
+        SpeedBox.TextColor3 = Color3.fromRGB(0,255,150)
+        SpeedBox.Font = Enum.Font.GothamBold
+        SpeedBox.TextSize = 11
+        Instance.new("UICorner", SpeedBox).CornerRadius = UDim.new(0,5)
+        SpeedBox.FocusLost:Connect(function()
+            local V = tonumber(SpeedBox.Text)
+            if V and V >= 0.001 then StateObj.Speed = V else StateObj.Speed = 0.001 end
+            SpeedBox.Text = string.format("%.3f", StateObj.Speed)
+        end)
+
+        local AddCmdFrame = Instance.new("Frame", Page)
+        AddCmdFrame.Position = UDim2.new(0,4,0,142)
+        AddCmdFrame.Size = UDim2.new(1,-8,0,28)
+        AddCmdFrame.BackgroundTransparency = 1
+        local NewCmdBox = Instance.new("TextBox", AddCmdFrame)
+        NewCmdBox.Size = UDim2.new(0,90,1,0)
+        NewCmdBox.BackgroundColor3 = Color3.fromRGB(60,5,5)
+        NewCmdBox.BackgroundTransparency = 0.3
+        NewCmdBox.PlaceholderText = "أمر"
+        NewCmdBox.TextColor3 = Color3.new(1,1,1)
+        NewCmdBox.Font = Enum.Font.Gotham
+        NewCmdBox.TextSize = 11
+        Instance.new("UICorner", NewCmdBox).CornerRadius = UDim.new(0,5)
+        local NewCountBox = Instance.new("TextBox", AddCmdFrame)
+        NewCountBox.Size = UDim2.new(0,40,1,0)
+        NewCountBox.Position = UDim2.new(0,95,0,0)
+        NewCountBox.BackgroundColor3 = Color3.fromRGB(60,5,5)
+        NewCountBox.BackgroundTransparency = 0.3
+        NewCountBox.PlaceholderText = "عدد"
+        NewCountBox.Text = "1"
+        NewCountBox.TextColor3 = Color3.new(1,1,1)
+        NewCountBox.Font = Enum.Font.Gotham
+        NewCountBox.TextSize = 11
+        Instance.new("UICorner", NewCountBox).CornerRadius = UDim.new(0,5)
+        local AddCmdBtn = Instance.new("TextButton", AddCmdFrame)
+        AddCmdBtn.Size = UDim2.new(0,55,1,0)
+        AddCmdBtn.Position = UDim2.new(1,-55,0,0)
+        AddCmdBtn.BackgroundColor3 = Color3.fromRGB(0,120,0)
+        AddCmdBtn.Text = "إضافة"
+        AddCmdBtn.Font = Enum.Font.GothamBold
+        AddCmdBtn.TextSize = 11
+        AddCmdBtn.TextColor3 = Color3.new(1,1,1)
+        Instance.new("UICorner", AddCmdBtn).CornerRadius = UDim.new(0,5)
+
+        local CmdContainer = Instance.new("ScrollingFrame", Page)
+        CmdContainer.Position = UDim2.new(0,4,0,178)
+        CmdContainer.Size = UDim2.new(1,-8,0,150)
+        CmdContainer.BackgroundColor3 = Color3.fromRGB(20,0,0)
+        CmdContainer.BackgroundTransparency = 0.4
+        CmdContainer.ScrollBarThickness = 3
+        CmdContainer.CanvasSize = UDim2.new(0,0,0,0)
+        Instance.new("UICorner", CmdContainer).CornerRadius = UDim.new(0,6)
+        local CmdListLayout = Instance.new("UIListLayout", CmdContainer)
+        CmdListLayout.Padding = UDim.new(0,4)
+        CmdListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            CmdContainer.CanvasSize = UDim2.new(0,0,0, CmdListLayout.AbsoluteContentSize.Y + 10)
+        end)
+
+        local function RebuildCmdList()
+            for _, C in ipairs(CmdContainer:GetChildren()) do if C:IsA("Frame") then C:Destroy() end end
+            for Cmd, Count in pairs(StateObj.Commands) do
+                local Row = Instance.new("Frame", CmdContainer)
+                Row.Size = UDim2.new(1,0,0,28)
+                Row.BackgroundColor3 = Color3.fromRGB(40,5,5)
+                Row.BackgroundTransparency = 0.3
+                Instance.new("UICorner", Row).CornerRadius = UDim.new(0,4)
+                local NameLbl = Instance.new("TextLabel", Row)
+                NameLbl.Size = UDim2.new(1,-80,1,0)
+                NameLbl.Position = UDim2.new(0,5,0,0)
+                NameLbl.BackgroundTransparency = 1
+                NameLbl.Text = Cmd
+                NameLbl.TextColor3 = Color3.new(1,1,1)
+                NameLbl.Font = Enum.Font.GothamBold
+                NameLbl.TextSize = 11
+                NameLbl.TextXAlignment = Enum.TextXAlignment.Left
+                local CountBox = Instance.new("TextBox", Row)
+                CountBox.Size = UDim2.new(0,40,1,0)
+                CountBox.Position = UDim2.new(1,-85,0,0)
+                CountBox.BackgroundColor3 = Color3.fromRGB(25,0,0)
+                CountBox.BackgroundTransparency = 0.3
+                CountBox.Text = tostring(Count)
+                CountBox.TextColor3 = Color3.fromRGB(0,255,150)
+                CountBox.Font = Enum.Font.GothamBold
+                CountBox.TextSize = 11
+                Instance.new("UICorner", CountBox).CornerRadius = UDim.new(0,4)
+                CountBox.FocusLost:Connect(function()
+                    local N = tonumber(CountBox.Text)
+                    if N and N >= 1 then StateObj.Commands[Cmd] = N else CountBox.Text = tostring(StateObj.Commands[Cmd]) end
+                end)
+                local DelBtn = Instance.new("TextButton", Row)
+                DelBtn.Size = UDim2.new(0,30,1,0)
+                DelBtn.Position = UDim2.new(1,-38,0,0)
+                DelBtn.BackgroundColor3 = Color3.fromRGB(200,0,0)
+                DelBtn.Text = "X"
+                DelBtn.Font = Enum.Font.GothamBold
+                DelBtn.TextSize = 14
+                DelBtn.TextColor3 = Color3.new(1,1,1)
+                Instance.new("UICorner", DelBtn).CornerRadius = UDim.new(0,4)
+                DelBtn.MouseButton1Click:Connect(function() StateObj.Commands[Cmd] = nil; RebuildCmdList() end)
+            end
+        end
+
+        AddCmdBtn.MouseButton1Click:Connect(function()
+            local Cmd = NewCmdBox.Text:match("^%s*(.-)%s*$")
+            if Cmd == "" then return end
+            local Count = tonumber(NewCountBox.Text) or 1
+            if Count < 1 then Count = 1 end
+            StateObj.Commands[Cmd] = Count
+            NewCmdBox.Text = ""; NewCountBox.Text = "1"
+            RebuildCmdList()
+        end)
+        RebuildCmdList()
+
+        if ShowSpamButtons then
+            local GhostBtn = Instance.new("TextButton", Page)
+            GhostBtn.Size = UDim2.new(1,-8,0,34)
+            GhostBtn.Position = UDim2.new(0,4,0,338)
+            GhostBtn.BackgroundColor3 = Color3.fromRGB(200,40,40)
+            GhostBtn.Text = "سبام وهمي"
+            GhostBtn.Font = Enum.Font.GothamBold
+            GhostBtn.TextSize = 12
+            GhostBtn.TextColor3 = Color3.new(1,1,1)
+            Instance.new("UICorner", GhostBtn).CornerRadius = UDim.new(0,6)
+
+            local NormalBtn = Instance.new("TextButton", Page)
+            NormalBtn.Size = UDim2.new(1,-8,0,34)
+            NormalBtn.Position = UDim2.new(0,4,0,378)
+            NormalBtn.BackgroundColor3 = Color3.fromRGB(200,100,40)
+            NormalBtn.Text = "سبام عادي"
+            NormalBtn.Font = Enum.Font.GothamBold
+            NormalBtn.TextSize = 12
+            NormalBtn.TextColor3 = Color3.new(1,1,1)
+            Instance.new("UICorner", NormalBtn).CornerRadius = UDim.new(0,6)
+
+            local StatusLabel = Instance.new("TextLabel", Page)
+            StatusLabel.Size = UDim2.new(1,-8,0,16)
+            StatusLabel.Position = UDim2.new(0,4,0,418)
+            StatusLabel.BackgroundTransparency = 1
+            StatusLabel.Text = ""
+            StatusLabel.Font = Enum.Font.Gotham
+            StatusLabel.TextSize = 10
+            StatusLabel.TextColor3 = Color3.fromRGB(0,255,100)
+
+            GhostBtn.MouseButton1Click:Connect(function()
+                if Spam.Mode == "ghost" then Spam:Stop(); Spam.Mode = nil else Spam:Start(); Spam.Mode = "ghost" end
+            end)
+            NormalBtn.MouseButton1Click:Connect(function()
+                if Spam.Mode == "normal" then Spam:Stop(); Spam.Mode = nil else Spam:Start(); Spam.Mode = "normal" end
+            end)
+
+            task.spawn(function()
+                while task.wait(0.2) do
+                    if Spam.Active then
+                        StatusLabel.Text = "شغال - " .. (Spam.Mode == "ghost" and "وهمي" or "عادي")
+                        GhostBtn.BackgroundColor3 = Spam.Mode == "ghost" and Color3.fromRGB(0,200,0) or Color3.fromRGB(200,40,40)
+                        NormalBtn.BackgroundColor3 = Spam.Mode == "normal" and Color3.fromRGB(0,200,0) or Color3.fromRGB(200,100,40)
+                    else
+                        StatusLabel.Text = "متوقف"
+                        GhostBtn.BackgroundColor3 = Color3.fromRGB(200,40,40)
+                        NormalBtn.BackgroundColor3 = Color3.fromRGB(200,100,40)
+                    end
+                end
+            end)
+        else
+            local HiddenBtn = Instance.new("TextButton", Page)
+            HiddenBtn.Size = UDim2.new(1,-8,0,34)
+            HiddenBtn.Position = UDim2.new(0,4,0,338)
+            HiddenBtn.BackgroundColor3 = Color3.fromRGB(34,139,34)
+            HiddenBtn.Text = "تشغيل السبام المخفي"
+            HiddenBtn.Font = Enum.Font.GothamBold
+            HiddenBtn.TextSize = 12
+            HiddenBtn.TextColor3 = Color3.new(1,1,1)
+            Instance.new("UICorner", HiddenBtn).CornerRadius = UDim.new(0,6)
+
+            local StatusLabel = Instance.new("TextLabel", Page)
+            StatusLabel.Size = UDim2.new(1,-8,0,16)
+            StatusLabel.Position = UDim2.new(0,4,0,378)
+            StatusLabel.BackgroundTransparency = 1
+            StatusLabel.Text = ""
+            StatusLabel.Font = Enum.Font.Gotham
+            StatusLabel.TextSize = 10
+            StatusLabel.TextColor3 = Color3.fromRGB(0,255,100)
+
+            HiddenBtn.MouseButton1Click:Connect(function()
+                if HiddenSpam.Active then HiddenSpam:Stop() else HiddenSpam:Start() end
+            end)
+
+            task.spawn(function()
+                while task.wait(0.2) do
+                    if HiddenSpam.Active then
+                        StatusLabel.Text = "شغال - مخفي"
+                        HiddenBtn.Text = "إيقاف"
+                        HiddenBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+                    else
+                        StatusLabel.Text = "متوقف"
+                        HiddenBtn.Text = "تشغيل السبام المخفي"
+                        HiddenBtn.BackgroundColor3 = Color3.fromRGB(34,139,34)
+                    end
+                end
+            end)
+        end
+    end
+
+    BuildCopyPage(CopyPage, Spam, true)
+    BuildCopyPage(HiddenCopyPage, HiddenSpam, false)
+
+    -- PROTECTION PAGE Controls
+    local HousingBtn = Instance.new("TextButton", ProtectPage)
+    HousingBtn.Size = UDim2.new(1,-8,0,45)
+    HousingBtn.Position = UDim2.new(0,4,0,10)
+    HousingBtn.BackgroundColor3 = Color3.fromRGB(100,0,0)
+    HousingBtn.Text = "حماية السكن: OFF"
+    HousingBtn.Font = Enum.Font.GothamBold
+    HousingBtn.TextSize = 13
+    HousingBtn.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", HousingBtn).CornerRadius = UDim.new(0,8)
+    HousingBtn.MouseButton1Click:Connect(function()
+        if Housing.Active then Housing:Stop(); HousingBtn.Text = "حماية السكن: OFF"; HousingBtn.BackgroundColor3 = Color3.fromRGB(100,0,0)
+        else Housing:Start(); HousingBtn.Text = "حماية السكن: ON"; HousingBtn.BackgroundColor3 = Color3.fromRGB(0,100,0) end
+    end)
+
+    local ProtectBtn = Instance.new("TextButton", ProtectPage)
+    ProtectBtn.Size = UDim2.new(1,-8,0,45)
+    ProtectBtn.Position = UDim2.new(0,4,0,65)
+    ProtectBtn.BackgroundColor3 = Color3.fromRGB(0,80,80)
+    ProtectBtn.Text = "حماية: OFF"
+    ProtectBtn.Font = Enum.Font.GothamBold
+    ProtectBtn.TextSize = 13
+    ProtectBtn.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", ProtectBtn).CornerRadius = UDim.new(0,8)
+    ProtectBtn.MouseButton1Click:Connect(function()
+        if Protection.Active then Protection:Stop(); ProtectBtn.Text = "حماية: OFF"; ProtectBtn.BackgroundColor3 = Color3.fromRGB(0,80,80)
+        else Protection:Start(); ProtectBtn.Text = "حماية: ON"; ProtectBtn.BackgroundColor3 = Color3.fromRGB(0,150,0) end
+    end)
+
+    local TitleFrame = Instance.new("Frame", ProtectPage)
+    TitleFrame.Size = UDim2.new(1,-8,0,90)
+    TitleFrame.Position = UDim2.new(0,4,0,120)
+    TitleFrame.BackgroundColor3 = Color3.fromRGB(30,5,5)
+    TitleFrame.BackgroundTransparency = 0.3
+    Instance.new("UICorner", TitleFrame).CornerRadius = UDim.new(0,8)
+
+    local TitleInput = Instance.new("TextBox", TitleFrame)
+    TitleInput.Size = UDim2.new(1,-10,0,30)
+    TitleInput.Position = UDim2.new(0,5,0,10)
+    TitleInput.BackgroundColor3 = Color3.fromRGB(50,10,10)
+    TitleInput.PlaceholderText = "اللقب الجديد"
+    TitleInput.Text = "ANA"
+    TitleInput.TextColor3 = Color3.new(1,1,1)
+    TitleInput.Font = Enum.Font.Gotham
+    TitleInput.TextSize = 12
+    Instance.new("UICorner", TitleInput).CornerRadius = UDim.new(0,5)
+    TitleInput:GetPropertyChangedSignal("Text"):Connect(function() CurrentTitle = TitleInput.Text end)
+
+    local RainbowBtn = Instance.new("TextButton", TitleFrame)
+    RainbowBtn.Size = UDim2.new(1,-10,0,35)
+    RainbowBtn.Position = UDim2.new(0,5,0,55)
+    RainbowBtn.BackgroundColor3 = Color3.fromRGB(150,50,180)
+    RainbowBtn.Text = "اللقب الملون: OFF"
+    RainbowBtn.TextColor3 = Color3.new(1,1,1)
+    RainbowBtn.Font = Enum.Font.GothamBold
+    RainbowBtn.TextSize = 12
+    Instance.new("UICorner", RainbowBtn).CornerRadius = UDim.new(0,6)
+    RainbowBtn.MouseButton1Click:Connect(function()
+        if Rainbow.Active then Rainbow:Stop(); RainbowBtn.Text = "اللقب الملون: OFF"; RainbowBtn.BackgroundColor3 = Color3.fromRGB(150,50,180)
+        else Rainbow:Start(); RainbowBtn.Text = "اللقب الملون: ON"; RainbowBtn.BackgroundColor3 = Color3.fromRGB(0,150,0) end
+    end)
+
+    -- TOOLS PAGE
+    local ToolsScroll = Instance.new("ScrollingFrame", ToolsPage)
+    ToolsScroll.Position = UDim2.new(0,4,0,10)
+    ToolsScroll.Size = UDim2.new(1,-8,1,-20)
+    ToolsScroll.BackgroundTransparency = 1
+    ToolsScroll.ScrollBarThickness = 4
+    ToolsScroll.CanvasSize = UDim2.new(0,0,0,0)
+    local ToolsList = Instance.new("UIListLayout", ToolsScroll)
+    ToolsList.Padding = UDim.new(0,6)
+    ToolsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        ToolsScroll.CanvasSize = UDim2.new(0,0,0, ToolsList.AbsoluteContentSize.Y + 20)
+    end)
+
+    local function AddToolButton(Text, Color, Callback)
+        local Button = Instance.new("TextButton", ToolsScroll)
+        Button.Size = UDim2.new(1,-8,0,42)
+        Button.BackgroundColor3 = Color
+        Button.Text = Text
+        Button.TextColor3 = Color3.new(1,1,1)
+        Button.Font = Enum.Font.GothamBold
+        Button.TextSize = 13
+        Instance.new("UICorner", Button).CornerRadius = UDim.new(0,8)
+        Button.MouseButton1Click:Connect(Callback)
+        return Button
+    end
+
+    AddToolButton("سبام خارجي", Color3.fromRGB(180,40,40), function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Shhd-code/SH_spam_neo/refs/heads/main/README.md"))()
+    end)
+    AddToolButton("سكنات", Color3.fromRGB(180,60,120), function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Shhd-code/Skinn-neooo/refs/heads/main/README.md"))()
+    end)
+    AddToolButton("رقصات", Color3.fromRGB(200,120,30), function()
+        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-ARES-EMOTE-HUB-148804"))()
+    end)
+    AddToolButton("راديو", Color3.fromRGB(0,150,100), function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Shhd-code/Raduooo/refs/heads/main/README.md"))()
+    end)
+    AddToolButton("سبام شات", Color3.fromRGB(255,100,0), function()
+        loadstring(game:HttpGet("https://pastebin.com/raw/cEnfYQqF", true))()
+    end)
+    AddToolButton("سكربت المنايك مونستر", Color3.fromRGB(255,50,50), function()
+        local function ApplyRainbow(obj, prop)
+            task.spawn(function() while task.wait() do obj[prop] = Color3.fromHSV(tick()%5/5,1,1) end end)
+        end
+        local sg2 = Instance.new("ScreenGui", CoreGui)
+        local ToggleBtn2 = Instance.new("TextButton", sg2)
+        ToggleBtn2.Size = UDim2.new(0,130,0,40); ToggleBtn2.Position = UDim2.new(0,10,0.5,0)
+        ToggleBtn2.BackgroundColor3 = Color3.new(0,0,0); ToggleBtn2.BackgroundTransparency = 0.5
+        ToggleBtn2.Text = "MONSTER"; ToggleBtn2.Font = Enum.Font.GothamBlack; ToggleBtn2.TextSize = 18; ToggleBtn2.Draggable = true
+        Instance.new("UICorner", ToggleBtn2); ApplyRainbow(ToggleBtn2, "TextColor3")
+        local MainFrame2 = Instance.new("Frame", sg2)
+        MainFrame2.Size = UDim2.new(0,480,0,450); MainFrame2.Position = UDim2.new(0.5,-240,0.5,-225)
+        MainFrame2.BackgroundColor3 = Color3.new(0,0,0); MainFrame2.BackgroundTransparency = 0.3; MainFrame2.Visible = false
+        MainFrame2.Active = true; MainFrame2.Draggable = true; Instance.new("UICorner", MainFrame2)
+        local UIStroke2 = Instance.new("UIStroke", MainFrame2); UIStroke2.Thickness = 2.5; ApplyRainbow(UIStroke2, "Color")
+        local Scroll2 = Instance.new("ScrollingFrame", MainFrame2)
+        Scroll2.Size = UDim2.new(1,-20,1,-20); Scroll2.Position = UDim2.new(0,10,0,10); Scroll2.BackgroundTransparency = 1
+        Scroll2.CanvasSize = UDim2.new(0,0,2.5,0); Instance.new("UIListLayout", Scroll2).Padding = UDim.new(0,8)
+        local function AddScript2(n,u)
+            local f = Instance.new("Frame", Scroll2); f.Size = UDim2.new(1,-5,0,50)
+            f.BackgroundColor3 = Color3.new(0,0,0); f.BackgroundTransparency = 0.6; Instance.new("UICorner", f)
+            local t = Instance.new("TextLabel", f); t.Size = UDim2.new(0.7,0,1,0); t.Text = n
+            t.TextColor3 = Color3.new(1,1,1); t.Font = Enum.Font.GothamBold; t.TextSize = 14; t.BackgroundTransparency = 1
+            t.Position = UDim2.new(0,10,0,0); t.TextXAlignment = Enum.TextXAlignment.Left
+            local r = Instance.new("TextButton", f); r.Size = UDim2.new(0,80,0,30); r.Position = UDim2.new(1,-85,0.5,-15)
+            r.Text = "تشغيل"; r.BackgroundColor3 = Color3.fromRGB(0,120,0); r.TextColor3 = Color3.new(1,1,1)
+            Instance.new("UICorner", r); r.MouseButton1Click:Connect(function() loadstring(game:HttpGet(u))() end)
+        end
+        AddScript2("نسخ MONSTER", "https://pastebin.com/raw/tp3zFium")
+        AddScript2("نسخ V3", "https://pastebin.com/raw/LTchvtfK")
+        AddScript2("بلوكس فروت", "https://rawscripts.net/raw/Blox-Fruits-Atherhub-Auto-Level-Auto-Raid-Auto-Boss-BEST-Script-79550")
+        AddScript2("VR7", "https://raw.githubusercontent.com/VR7ss/OMK/refs/heads/main/VR7-ON-TOP")
+        AddScript2("كاشف لعيبه", "https://pastebin.com/raw/1KF6k8ne")
+        AddScript2("day99", "https://raw.githubusercontent.com/AAwful/Vector_Hub/0/v2")
+        AddScript2("سرعة مابات", "https://pastebin.com/raw/0m52kRnj")
+        AddScript2("بلوك سبن", "https://raw.githubusercontent.com/hermanos-dev/hermanos-hub/refs/heads/main/BlockSpin/blockspin-pvp.lua")
+        AddScript2("هجوم عمالقة", "https://api.luarmor.net/files/v3/loaders/afd0782a9345876921638d57777d4bc8.lua")
+        ToggleBtn2.MouseButton1Click:Connect(function() MainFrame2.Visible = not MainFrame2.Visible end)
+    end)
+    AddToolButton("سكربت عماد", Color3.fromRGB(255,150,0), function()
+        loadstring(game:HttpGet("https://pastebin.com/raw/148uP1mi"))()
+    end)
+    AddToolButton("سكربت شهد", Color3.fromRGB(255,0,150), function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Shhd-code/K/refs/heads/main/README.md"))()
+    end)
+    AddToolButton("سكربت محمد", Color3.fromRGB(0,200,200), function()
+        loadstring(game:HttpGet("https://pastebin.com/raw/HKzHweyq"))()
+    end)
+
+    local Spinning = false
+    AddToolButton("تشغيل الدوران", Color3.fromRGB(140,220,40), function() Spinning = true end)
+    AddToolButton("إيقاف الدوران", Color3.fromRGB(170,30,30), function() Spinning = false end)
+    RunService.Heartbeat:Connect(function()
+        if Spinning and Client.Character and Client.Character:FindFirstChild("HumanoidRootPart") then
+            Client.Character.HumanoidRootPart.CFrame = Client.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(50), 0)
+        end
+    end)
+
+    Pages["نسخ عادي"].Visible = true
+    Tabs["نسخ عادي"].BackgroundTransparency = 0
+end
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    BuildMainUI()
+    MainFrame.Visible = not MainFrame.Visible
+end)
     cnt.BackgroundTransparency = 1
     local lb1 = Instance.new("TextLabel", cnt)
     lb1.Size = UDim2.new(0,70,1,0)
